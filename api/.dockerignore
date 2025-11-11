@@ -1,0 +1,9 @@
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.swp
+.vs/
+.vscode/
+Migrations/

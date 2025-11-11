@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: adhd-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+      - ASPNETCORE_URLS=http://+:5180
+      - ConnectionStrings__DefaultConnection=${CONNECTION_STRING}
+      - CORS_ORIGINS=${CORS_ORIGINS}
+    ports:
+      - "${API_PORT}:5180"
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./web-client
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=${VITE_API_BASE_URL}
+    container_name: adhd-web
+    ports:
+      - "${WEB_PORT}:80"
+    depends_on:
+      - api
+    restart: unless-stopped

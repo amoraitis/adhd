@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile.dev
+    container_name: adhd-api-dev
+    environment:
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+      - ASPNETCORE_URLS=http://+:5180
+      - ConnectionStrings__DefaultConnection=${CONNECTION_STRING}
+      - CORS_ORIGINS=${CORS_ORIGINS}
+    ports:
+      - "${API_PORT}:5180"
+    volumes:
+      - ./api:/app
+      - /app/bin
+      - /app/obj
+    restart: unless-stopped
+
+  web:
+    image: node:20-alpine
+    container_name: adhd-web-dev
+    working_dir: /app
+    environment:
+      - VITE_API_BASE_URL=${VITE_API_BASE_URL}
+    ports:
+      - "${WEB_PORT}:5173"
+    volumes:
+      - ./web-client:/app
+      - /app/node_modules
+    command: sh -c "npm install && npm run dev -- --host"
+    depends_on:
+      - api
+    restart: unless-stopped

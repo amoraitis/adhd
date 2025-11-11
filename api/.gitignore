@@ -1,0 +1,17 @@
+## .NET
+bin/
+obj/
+*.db
+*.db-shm
+*.db-wal
+
+## User-specific files
+*.user
+*.userosscache
+*.sln.docstates
+
+## Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
