@@ -80,8 +80,6 @@ export const DailyTracker: React.FC<DailyTrackerProps> = ({ today, dailyDate }) 
   };
 
   const saveDailyEntry = async () => {
-    if (isReadOnly) return; // Don't save if it's a past date
-    
     try {
       // Convert priorities array to Priority objects
       const priorityObjects: Priority[] = priorities
@@ -92,14 +90,17 @@ export const DailyTracker: React.FC<DailyTrackerProps> = ({ today, dailyDate }) 
         }))
         .filter(p => p.name.trim() !== ''); // Only save non-empty priorities
 
+      // For future dates, only save if there are priorities
+      if (isFuture && priorityObjects.length === 0) return;
+
       const entry = await api.saveDailyEntry({
         id: dailyEntryId,
         date: selectedDate,
-        brainDump,
+        brainDump: isFuture ? '' : brainDump, // Don't save brain dump for future dates
         priorities: priorityObjects,
-        worries,
-        worryTime,
-        gratitude,
+        worries: isFuture ? '' : worries, // Don't save worries for future dates
+        worryTime: isFuture ? '19:00' : worryTime, // Don't save worry time for future dates
+        gratitude: isFuture ? '' : gratitude, // Don't save gratitude for future dates
       });
       setDailyEntryId(entry.id);
     } catch (error) {
@@ -127,7 +128,7 @@ export const DailyTracker: React.FC<DailyTrackerProps> = ({ today, dailyDate }) 
   };
 
   const toggleComplete = (index: number) => {
-    if (isReadOnly || isFuture) return; // Don't allow toggling in read-only mode or for future dates
+    if (isFuture) return; // Don't allow toggling for future dates
     const newCompleted = [...completed];
     newCompleted[index] = !newCompleted[index];
     setCompleted(newCompleted);
@@ -205,7 +206,7 @@ export const DailyTracker: React.FC<DailyTrackerProps> = ({ today, dailyDate }) 
               <p className="text-sm text-gray-500 mt-1">{getDisplayDate()}</p>
               {isPast && (
                 <span className="text-xs text-amber-600 font-semibold mt-1 bg-amber-100 px-3 py-1 rounded-full">
-                  📖 Λειτουργία ανάγνωσης μόνο
+                  � Μπορείς να ολοκληρώσεις προτεραιότητες
                 </span>
               )}
               {isToday && (
@@ -277,10 +278,10 @@ export const DailyTracker: React.FC<DailyTrackerProps> = ({ today, dailyDate }) 
         </div>
         <div className="space-y-3">
           {priorities.map((priority, index) => (
-            <div key={index} className="flex items-start space-x-3">
+            <div key={index} className="flex flex-col sm:flex-row items-start sm:space-x-3 space-y-2 sm:space-y-0">
               <button
                 onClick={() => toggleComplete(index)}
-                className="mt-1 flex-shrink-0"
+                className="flex-shrink-0"
                 disabled={isFuture}
               >
                 {completed[index] ? (
@@ -289,25 +290,25 @@ export const DailyTracker: React.FC<DailyTrackerProps> = ({ today, dailyDate }) 
                   <Circle className={`w-6 h-6 ${isFuture ? 'text-gray-300' : 'text-gray-400 hover:text-indigo-600'}`} />
                 )}
               </button>
-              <div className="flex-1">
+              <div className="flex-1 w-full">
                 <div className="text-xs text-indigo-600 font-semibold mb-1">
                   {index === 0 ? '🎯 Προτεραιότητα #1 (Σημαντικό)' : `✓ Προτεραιότητα #${index + 1}`}
                 </div>
-                <input
-                  type="text"
+                <textarea
                   value={priority}
                   onChange={(e) => updatePriority(index, e.target.value)}
-                  className={`w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 ${
+                  rows={2}
+                  className={`w-full p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 resize-none ${
                     completed[index] ? 'line-through text-gray-400 bg-gray-50' : ''
                   }`}
                   placeholder={index === 0 ? "Το πιο σημαντικό σήμερα..." : "Δευτερεύον καθήκον..."}
                   readOnly={isReadOnly}
                 />
               </div>
-              {!completed[index] && !isReadOnly && priority.trim() && (
+              {!completed[index] && !isFuture && priority.trim() && (
                 <button
                   onClick={() => movePriorityToNextDay(index)}
-                  className="mt-7 p-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors flex items-center text-sm font-medium"
+                  className="flex-shrink-0 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors flex items-center text-sm font-medium whitespace-nowrap"
                   title="Μετακίνηση στην επόμενη διαθέσιμη μέρα"
                 >
                   <ArrowRight className="w-4 h-4 mr-1" />

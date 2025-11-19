@@ -126,9 +126,41 @@ app.MapPost("/api/daily", async (DailyEntry entry, AppDbContext db) =>
         existing.WorryTime = entry.WorryTime;
         existing.Gratitude = entry.Gratitude;
         
-        // Update priorities
-        db.Priorities.RemoveRange(existing.Priorities);
-        existing.Priorities = entry.Priorities;
+        // Update priorities intelligently - update existing ones, add new ones, remove deleted ones
+        foreach (var incomingPriority in entry.Priorities)
+        {
+            var existingPriority = existing.Priorities
+                .FirstOrDefault(p => p.Importance == incomingPriority.Importance);
+            
+            if (existingPriority != null)
+            {
+                // Update existing priority
+                existingPriority.Name = incomingPriority.Name;
+                existingPriority.Done = incomingPriority.Done;
+            }
+            else if (!string.IsNullOrWhiteSpace(incomingPriority.Name))
+            {
+                // Add new priority
+                existing.Priorities.Add(new Priority
+                {
+                    Name = incomingPriority.Name,
+                    Done = incomingPriority.Done,
+                    Importance = incomingPriority.Importance,
+                    DailyEntryId = existing.Id
+                });
+            }
+        }
+        
+        // Remove priorities that are no longer present (empty names)
+        var prioritiesToRemove = existing.Priorities
+            .Where(p => !entry.Priorities.Any(ip => ip.Importance == p.Importance && !string.IsNullOrWhiteSpace(ip.Name)))
+            .ToList();
+        
+        foreach (var priorityToRemove in prioritiesToRemove)
+        {
+            existing.Priorities.Remove(priorityToRemove);
+            db.Priorities.Remove(priorityToRemove);
+        }
         
         await db.SaveChangesAsync();
         return Results.Ok(existing);
@@ -178,6 +210,7 @@ app.MapPost("/api/priorities/{priorityId}/move-to-next-day", async (int priority
                     Priorities = new List<Priority>()
                 };
                 db.DailyEntries.Add(targetEntry);
+                await db.SaveChangesAsync(); // Save to get the ID
             }
             
             // Determine the importance for the new priority
@@ -188,25 +221,17 @@ app.MapPost("/api/priorities/{priorityId}/move-to-next-day", async (int priority
                 newImportance++;
             }
             
-            // Create new priority in target day
-            var newPriority = new Priority
-            {
-                Name = priority.Name,
-                Done = false,
-                Importance = newImportance,
-                DailyEntry = targetEntry
-            };
-            db.Priorities.Add(newPriority);
-            
-            // Remove old priority
-            db.Priorities.Remove(priority);
+            // Update the priority to point to the new daily entry
+            priority.DailyEntryId = targetEntry.Id;
+            priority.Importance = newImportance;
+            priority.Done = false; // Reset done status when moving
             
             await db.SaveChangesAsync();
             
             return Results.Ok(new { 
                 success = true, 
                 movedToDate = nextAvailableDate.ToString("yyyy-MM-dd"),
-                newPriority
+                priority
             });
         }
     }

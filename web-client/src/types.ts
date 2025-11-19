@@ -1,5 +1,5 @@
 export interface Step {
-  id: number;
+  id?: number;
   text: string;
   done: boolean;
 }

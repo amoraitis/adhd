@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, X, ChevronDown, ChevronUp, Target, CheckCircle2, Circle } from 'lucide-react';
-import type { Goal } from '../types';
+import type { Goal, Step } from '../types';
 import { api } from '../api';
 
 export const GoalsTab: React.FC = () => {
@@ -47,15 +47,16 @@ export const GoalsTab: React.FC = () => {
     const goal = goals.find(g => g.id === goalId);
     if (!goal) return;
 
-    const newStep = { id: Date.now(), text: stepText, done: false };
+    // Don't send ID for new steps - let the database generate it
+    const newStep: Step = { text: stepText, done: false };
     const updatedGoal = {
       ...goal,
       steps: [...goal.steps, newStep]
     };
 
     try {
-      await api.updateGoal(goalId, updatedGoal);
-      setGoals(goals.map(g => g.id === goalId ? updatedGoal : g));
+      const savedGoal = await api.updateGoal(goalId, updatedGoal);
+      setGoals(goals.map(g => g.id === goalId ? savedGoal : g));
     } catch (error) {
       console.error('Failed to add step:', error);
       alert('Αποτυχία προσθήκης βήματος');
@@ -241,7 +242,7 @@ export const GoalsTab: React.FC = () => {
                       {goal.steps.map((step) => (
                         <div key={step.id} className="flex items-start space-x-3 bg-gray-50 p-3 rounded-lg">
                           <button
-                            onClick={() => toggleStep(goal.id, step.id)}
+                            onClick={() => step.id && toggleStep(goal.id, step.id)}
                             className="flex-shrink-0 mt-0.5"
                           >
                             {step.done ? (
@@ -254,7 +255,7 @@ export const GoalsTab: React.FC = () => {
                             {step.text}
                           </span>
                           <button
-                            onClick={() => deleteStep(goal.id, step.id)}
+                            onClick={() => step.id && deleteStep(goal.id, step.id)}
                             className="flex-shrink-0 p-1 hover:bg-red-100 rounded transition-colors"
                           >
                             <X className="w-4 h-4 text-red-500" />
