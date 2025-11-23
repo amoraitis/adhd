@@ -1,0 +1,16 @@
+# Set your registry address
+$REGISTRY = "homelab:5000"  # or your registry domain/IP:port
+
+# Build the images with registry tags
+docker build -t ${REGISTRY}/adhd-api:latest ./api
+docker build -t ${REGISTRY}/adhd-web:latest --build-arg VITE_API_BASE_URL=http://localhost:5180/api ./web-client
+
+# Push the images to your registry
+docker push ${REGISTRY}/adhd-api:latest
+docker push ${REGISTRY}/adhd-web:latest
+
+# Optional: Tag with version number as well
+docker tag ${REGISTRY}/adhd-api:latest ${REGISTRY}/adhd-api:v1.0
+docker tag ${REGISTRY}/adhd-web:latest ${REGISTRY}/adhd-web:v1.0
+docker push ${REGISTRY}/adhd-api:v1.0
+docker push ${REGISTRY}/adhd-web:v1.0

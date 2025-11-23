@@ -1,4 +1,4 @@
-import type { Goal, DailyEntry } from './types';
+import type { Goal, DailyEntry, RecurringPriority, RecommendedPriority } from './types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5180/api';
 
@@ -74,6 +74,55 @@ export const api = {
       const error = await response.text();
       throw new Error(error || 'Failed to move priority');
     }
+    return response.json();
+  },
+
+  // Recurring priorities
+  async getRecurringPriorities(): Promise<RecurringPriority[]> {
+    const response = await fetch(`${API_BASE_URL}/recurring-priorities`);
+    if (!response.ok) throw new Error('Failed to fetch recurring priorities');
+    return response.json();
+  },
+
+  async createRecurringPriority(template: Omit<RecurringPriority, 'id' | 'createdAt'>): Promise<RecurringPriority> {
+    const response = await fetch(`${API_BASE_URL}/recurring-priorities`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(template),
+    });
+    if (!response.ok) throw new Error('Failed to create recurring priority');
+    return response.json();
+  },
+
+  async updateRecurringPriority(id: number, template: RecurringPriority): Promise<RecurringPriority> {
+    const response = await fetch(`${API_BASE_URL}/recurring-priorities/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(template),
+    });
+    if (!response.ok) throw new Error('Failed to update recurring priority');
+    return response.json();
+  },
+
+  async deleteRecurringPriority(id: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/recurring-priorities/${id}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) throw new Error('Failed to delete recurring priority');
+  },
+
+  async toggleRecurringPriority(id: number): Promise<RecurringPriority> {
+    const response = await fetch(`${API_BASE_URL}/recurring-priorities/${id}/toggle`, {
+      method: 'PATCH',
+    });
+    if (!response.ok) throw new Error('Failed to toggle recurring priority');
+    return response.json();
+  },
+
+  // AI Recommendations
+  async getRecommendations(date: string): Promise<RecommendedPriority[]> {
+    const response = await fetch(`${API_BASE_URL}/recommendations/${date}`);
+    if (!response.ok) throw new Error('Failed to fetch recommendations');
     return response.json();
   },
 };

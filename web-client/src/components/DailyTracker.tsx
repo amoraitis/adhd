@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Brain, CheckCircle2, Circle, Save, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
+import { Brain, CheckCircle2, Circle, Save, ChevronLeft, ChevronRight, ArrowRight, AlertTriangle } from 'lucide-react';
 import { api } from '../api';
 import type { Priority } from '../types';
+import { RecurringPriorities } from './RecurringPriorities';
+import { AIRecommendations } from './AIRecommendations';
 
 interface DailyTrackerProps {
   today: string;
@@ -21,6 +23,8 @@ export const DailyTracker: React.FC<DailyTrackerProps> = ({ today, dailyDate }) 
   const [dailyEntryId, setDailyEntryId] = useState<number | undefined>();
   const [loading, setLoading] = useState(true);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [totalPriorities, setTotalPriorities] = useState(0);
+  const [recurringPrioritiesCount, setRecurringPrioritiesCount] = useState(0);
 
   const isToday = selectedDate === today;
   const isPast = selectedDate < today;
@@ -41,10 +45,16 @@ export const DailyTracker: React.FC<DailyTrackerProps> = ({ today, dailyDate }) 
         setDailyEntryId(entry.id);
         setBrainDump(entry.brainDump || '');
         
-        // Load priorities from the array
+        // Load priorities from the array (including recurring ones)
         const priorityNames = ['', '', ''];
         const priorityDone = [false, false, false];
         const priorityIdList: (number | undefined)[] = [undefined, undefined, undefined];
+        
+        // Track priority counts
+        setTotalPriorities(entry.priorities.length);
+        setRecurringPrioritiesCount(entry.priorities.filter(p => p.recurringPriorityId).length);
+        
+        // Fill slots with priorities
         entry.priorities.forEach(p => {
           const index = p.importance - 1; // importance is 1-based
           if (index >= 0 && index < 3) {
@@ -125,6 +135,13 @@ export const DailyTracker: React.FC<DailyTrackerProps> = ({ today, dailyDate }) 
     const newPriorities = [...priorities];
     newPriorities[index] = value;
     setPriorities(newPriorities);
+  };
+
+  const handleAcceptRecommendation = (name: string, importance: number) => {
+    const index = importance - 1; // Convert to 0-based index
+    if (index >= 0 && index < 3) {
+      updatePriority(index, name);
+    }
   };
 
   const toggleComplete = (index: number) => {
@@ -260,7 +277,29 @@ export const DailyTracker: React.FC<DailyTrackerProps> = ({ today, dailyDate }) 
       </div>
 
       {/* 3 Priorities */}
+      {/* AI Recommendations - Show for today or future dates */}
+      {(isToday || isFuture) && (
+        <AIRecommendations 
+          date={selectedDate} 
+          onAccept={handleAcceptRecommendation}
+          isFuture={isFuture}
+        />
+      )}
       <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-5 rounded-xl border border-blue-200">
+        {/* Overflow Warning */}
+        {totalPriorities > 3 && (
+          <div className="mb-3 p-3 bg-orange-100 border-2 border-orange-400 rounded-lg flex items-start">
+            <AlertTriangle className="w-5 h-5 text-orange-600 mr-2 flex-shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-bold text-orange-900">Προσοχή: Έχεις {totalPriorities} προτεραιότητες!</p>
+              <p className="text-orange-700">
+                {recurringPrioritiesCount > 0 && `${recurringPrioritiesCount} από αυτές είναι επαναλαμβανόμενες. `}
+                Δώσε προσοχή στις σημαντικότερες και μετακίνησε τις υπόλοιπες.
+              </p>
+            </div>
+          </div>
+        )}
+        
         <div className="flex items-center justify-between mb-3">
           <div>
             <h2 className="text-xl font-bold text-indigo-900">Οι 3 Προτεραιότητες Σήμερα</h2>
@@ -378,6 +417,8 @@ export const DailyTracker: React.FC<DailyTrackerProps> = ({ today, dailyDate }) 
           disabled={isFuture}
         />
       </div>
+      {/* Recurring Priorities Management - Only show for today */}
+      {isToday && <RecurringPriorities />}
         </>
       )}
     </div>

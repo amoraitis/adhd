@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<Step> Steps => Set<Step>();
     public DbSet<DailyEntry> DailyEntries => Set<DailyEntry>();
     public DbSet<Priority> Priorities => Set<Priority>();
+    public DbSet<RecurringPriority> RecurringPriorities => Set<RecurringPriority>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -31,5 +32,11 @@ public class AppDbContext : DbContext
             .WithOne(p => p.DailyEntry)
             .HasForeignKey(p => p.DailyEntryId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Priority>()
+            .HasOne(p => p.RecurringPriority)
+            .WithMany()
+            .HasForeignKey(p => p.RecurringPriorityId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

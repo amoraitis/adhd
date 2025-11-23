@@ -10,7 +10,6 @@ services:
       - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
       - ASPNETCORE_URLS=http://+:5180
       - ConnectionStrings__DefaultConnection=${CONNECTION_STRING}
-      - CORS_ORIGINS=${CORS_ORIGINS}
     ports:
       - "${API_PORT}:5180"
     volumes:
